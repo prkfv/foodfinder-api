@@ -1,41 +1,50 @@
-# main.py
-
 from fastapi import FastAPI
-from typing import Optional
-import os
-import uvicorn
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+from config import DATABASE_URL  # Імпорт DATABASE_URL із config.py
 
-# Тимчасова фейкова база закладів
-restaurants = [
-    {"name": "Український ресторан", "type": "Ресторан", "district": "Центр", "price": "₴₴₴", "cuisine": "Українська"},
-    {"name": "Бар на Дніпрі", "type": "Бар", "district": "Правий берег", "price": "₴"},
-    {"name": "Кавʼярня Aroma", "type": "Кавʼярня", "district": "Лівий берег", "price": "₴"},
-    {"name": "Італійська Тратторія", "type": "Ресторан", "district": "Центр", "price": "₴₴₴", "cuisine": "Італійська"},
-    {"name": "CoffeeLab", "type": "Кавʼярня", "district": "Правий берег", "price": "₴"},
-]
+app = FastAPI(
+    title="FoodFinderKyiv API",
+    version="1.0.0"
+)
 
+# Дозволяємо CORS-запити для вебаппу
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # можна обмежити якщо потрібно буде
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Підключення до бази даних
+engine = create_async_engine(DATABASE_URL, echo=True)
+async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
+# Модель для відповідей (поки без окремих pydantic-схем)
 @app.get("/restaurants")
-async def get_restaurants(
-    type: Optional[str] = None,
-    district: Optional[str] = None,
-    price: Optional[str] = None,
-    cuisine: Optional[str] = None
-):
-    result = []
-    for r in restaurants:
-        if type and r.get("type") != type:
-            continue
-        if district and r.get("district") != district:
-            continue
-        if price and r.get("price") != price:
-            continue
-        if cuisine and r.get("cuisine") != cuisine:
-            continue
-        result.append(r)
-    return result
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))  # <<< Ось важливий момент для Render
-    uvicorn.run("main:app", host="0.0.0.0", port=port)
+async def get_restaurants():
+    async with async_session() as session:
+        query = select(
+            "name",
+            "type",
+            "district",
+            "price",
+            "cuisine"
+        ).select_from("restaurants")
+        result = await session.execute(query)
+        rows = result.fetchall()
+        restaurants = [
+            {
+                "name": row[0],
+                "type": row[1],
+                "district": row[2],
+                "price": row[3],
+                "cuisine": row[4],
+            }
+            for row in rows
+        ]
+        return restaurants
