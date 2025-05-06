@@ -1,23 +1,16 @@
-# main.py
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from models import Base, Restaurant
-from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.future import select
-from fastapi.middleware.cors import CORSMiddleware
-from config import DATABASE_URL
+### 📁 /api-server/main.py
 
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.responses import JSONResponse
+from typing import List, Optional
+from models import Restaurant
+from config import async_session
 
 app = FastAPI()
 
-# Підключення до бази
-engine = create_async_engine(DATABASE_URL, echo=True)
-async_session = async_sessionmaker(engine, expire_on_commit=False)
-
-# CORS (щоб фронт міг підтягувати дані без помилок)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,32 +20,45 @@ app.add_middleware(
 )
 
 @app.get("/restaurants")
-async def get_restaurants(place_type: str, district: str, price_category: str, cuisine: str = None):
+async def get_restaurants(
+    place_type: Optional[str] = None,
+    district: Optional[str] = None,
+    price_category: Optional[str] = None,
+    cuisine: Optional[str] = None,
+    ai_ids: Optional[str] = Query(None)
+):
     async with async_session() as session:
-        stmt = select(Restaurant).where(
-            Restaurant.type == place_type,
-            Restaurant.district == district,
-            Restaurant.price_category == price_category
-        )
-        if cuisine:
-            stmt = stmt.where(Restaurant.cuisine == cuisine)
+        stmt = select(Restaurant)
+
+        if ai_ids:
+            id_list = list(map(int, ai_ids.split(",")))
+            stmt = stmt.where(Restaurant.id.in_(id_list))
+        else:
+            if place_type:
+                stmt = stmt.where(Restaurant.type == place_type)
+            if district:
+                stmt = stmt.where(Restaurant.district == district)
+            if price_category and price_category != "Пропустити":
+                stmt = stmt.where(Restaurant.price_category == price_category)
+            if cuisine:
+                stmt = stmt.where(Restaurant.cuisine == cuisine)
 
         result = await session.execute(stmt)
         restaurants = result.scalars().all()
 
-        return [{
-            "id": r.id,
-            "name": r.name,
-            "type": r.type,
-            "district": r.district,
-            "price_category": r.price_category,
-            "cuisine": r.cuisine,
-            "image_url": r.photo_url,
-            "description": r.work_hours,
-            "address": r.address,
-            "phone": r.phone,
-            "map_url": r.google_maps_link,
-            "latitude": r.latitude,
-            "longitude": r.longitude,
-        } for r in restaurants]
-
+        data = [
+            {
+                "id": r.id,
+                "name": r.name,
+                "type": r.type,
+                "district": r.district,
+                "price_category": r.price_category,
+                "cuisine": r.cuisine,
+                "description": r.description,
+                "lat": r.lat,
+                "lon": r.lon,
+                "phone": r.phone,
+            }
+            for r in restaurants
+        ]
+        return JSONResponse(content=data)
