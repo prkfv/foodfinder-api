@@ -1,4 +1,4 @@
-### 📁 /Telegram-bot/api-server/main.py
+### /Telegram-bot/api-server/main.py
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
