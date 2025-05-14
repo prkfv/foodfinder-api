@@ -34,6 +34,11 @@ async def get_restaurants(
     ai_ids: Optional[str] = Query(None)
 ):
     async with async_session() as session:
+        print("🔍 Отримано фільтри:")
+        print("  - place_type:", place_type)
+        print("  - district:", district)
+        print("  - price_category:", price_category)
+        print("  - cuisine:", cuisine)
         stmt = select(Restaurant)
 
         if ai_ids:
