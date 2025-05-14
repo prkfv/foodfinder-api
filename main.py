@@ -66,8 +66,8 @@ async def get_restaurants(
                 "price_category": r.price_category,
                 "cuisine": r.cuisine,
                 "description": getattr(r, "description", None),
-                "lat": r.lat,
-                "lon": r.lon,
+                "lat": r.latitude,
+                "lon": r.longitude,
                 "phone": r.phone,
             }
             for r in restaurants
