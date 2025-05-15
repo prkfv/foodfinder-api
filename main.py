@@ -9,6 +9,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
 from typing import List, Optional
+from urllib.parse import quote
 
 
 
@@ -75,5 +76,5 @@ async def get_restaurants(
             }
             for r in restaurants
         ]
-        
+
         return JSONResponse(content=data)
