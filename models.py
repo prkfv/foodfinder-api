@@ -15,10 +15,12 @@ class Restaurant(Base):
     google_maps_link = Column(String, nullable=True)
     latitude = Column(String, nullable=True)
     longitude = Column(String, nullable=True)
-    photo_url = Column(String, nullable=True)
+    image_url = Column(String, nullable=True)  # ← чисто
     work_hours = Column(String, nullable=True)
     district = Column(String, nullable=False)
     status = Column(String, default="approved")
     price_category = Column(String, nullable=False)
     popularity = Column(Integer, default=50)
     user_id = Column(Integer, default=0)
+    description = Column(String, nullable=True)  # ← для WebApp
+
