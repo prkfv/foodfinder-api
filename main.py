@@ -65,14 +65,15 @@ async def get_restaurants(
                 "district": r.district,
                 "price_category": r.price_category,
                 "cuisine": r.cuisine,
-                "description": r.description,
+                "description": getattr(r, "description", None),
                 "lat": r.latitude,
                 "lon": r.longitude,
                 "phone": r.phone,
-                "image_url": r.image_url,
+                "image_url": f"https://via.placeholder.com/150?text={quote(r.name)}",
                 "address": r.address,
-                "map_url": r.google_maps_link,
+                "map_url": f"https://maps.google.com/?q={r.latitude},{r.longitude}",
             }
             for r in restaurants
         ]
+        
         return JSONResponse(content=data)
